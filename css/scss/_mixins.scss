@@ -1,0 +1,78 @@
+@mixin WMMOg_InBrackets( $descriptor, $identifier, $value ) {
+	#{$descriptor}: -webkit-#{$identifier}( #{$value} ); // Safari/Chrome, other WebKit
+	#{$descriptor}: -moz-#{$identifier}   ( #{$value} ); // Firefox, other Gecko
+	#{$descriptor}: -ms-#{$identifier}    ( #{$value} ); // Microsoft
+	#{$descriptor}: -o-#{$identifier}     ( #{$value} ); // Opera
+	#{$descriptor}: #{$identifier}        ( #{$value} ); // Chrome/W3C
+}
+
+@mixin WMMOg( $identifier, $value ) {
+	-webkit-#{$identifier}: #{$value}; // Safari/Chrome, other WebKit
+	-moz-#{$identifier}   : #{$value}; // Firefox, other Gecko
+	-ms-#{$identifier}    : #{$value}; // Microsoft
+	-o-#{$identifier}     : #{$value}; // Opera
+	#{$identifier}        : #{$value}; // Chrome/W3C
+}
+
+@mixin WMOg( $identifier, $value ) {
+	-webkit-#{$identifier}: #{$value};
+	-moz-#{$identifier}   : #{$value};
+	-o-#{$identifier}     : #{$value};
+	#{$identifier}        : #{$value};
+}
+
+@mixin WMg( $identifier, $value ) {
+	-webkit-#{$identifier}: #{$value};
+	-moz-#{$identifier}   : #{$value};
+	#{$identifier}        : #{$value};
+}
+
+
+
+@mixin animation( $animation ) {@include WMOg(animation, $animation)}
+@mixin keyframes-from-to( $name, $from, $to ) {
+	@-webkit-keyframes #{$name} {from {-webkit-transform: $from;} to {-webkit-transform: $to;}}
+	@-moz-keyframes #{$name}    {from {-moz-transform: $from;}    to {-moz-transform: $to;}}
+	@-ms-keyframes #{$name}     {from {-ms-transform: $from;}     to {-ms-transform: $to;}}
+	@-o-keyframes #{$name}      {from {-o-transform: $from;}      to {-o-transform: $to;}}
+	@keyframes #{$name}         {from {transform: $from;}         to {transform: $to;}}
+}
+
+
+
+@mixin zoom( $scale ) {
+  @include transform(scale($scale)); 
+  @include transform-origin(0 0);
+}
+
+@mixin scale($xPercent, $yPercent:null, $xOrigin:null, $yOrigin:null ){
+	@if ($yPercent == null)     {@include transform(scale($xPercent)); }
+	@else if ($xOrigin == null) {@include transform(scale($xPercent,$yPercent)); }
+	@else if ($yOrigin == null) {@include transform(scale($xPercent,$yPercent)); @include transform-origin($xOrigin $xOrigin); }
+	@else                       {@include transform(scale($xPercent,$yPercent)); @include transform-origin($xOrigin $yOrigin); }
+}
+
+@mixin transform( $transformation ) {@include WMMOg(transform, $transformation)}
+@mixin transform-origin( $transformation ) {@include WMMOg(transform-origin, $transformation)}
+
+@mixin transition( $transition ) {@include WMMOg(transition, $transition)}
+
+@mixin filter( $filter ) {@include WMMOg(filter, $filter)}
+
+
+
+$default-box-sizing:border-box;
+@mixin box-sizing( $box-model: $default-box-sizing ) {@include WMg(box-sizing, $box-model)}
+
+
+@mixin border-radius($radius) {@include WMOg(border-radius, $radius)}
+@mixin box-shadow( $box-shadow ) {@include WMg(box-shadow, $box-shadow)}
+@mixin text-shadow( $text-shadow ) {@include WMg(text-shadow, $text-shadow)}
+
+@mixin opacity( $opacity ) {
+	-khtml-opacity: $opacity;
+	  -moz-opacity: $opacity;
+	    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=#{$opacity*100})";
+	        filter: alpha(opacity=$opacity*100); 
+	       opacity: $opacity;
+}

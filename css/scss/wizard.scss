@@ -1,0 +1,143 @@
+@import "mixins";
+@import "wizard/animate";
+
+
+html {min-height:100%; min-width:100%; position:relative;}
+body {min-height:100%; min-width:100%; position:absolute;}
+
+.wizardOverlay
+{
+	pointer-events:none;
+	position: absolute;
+	top: 0; left: 0;
+	width: 100%; height: 100%;
+	overflow: hidden;
+	z-index: 10000;
+	
+	&.inactive, &.inactive * {pointer-events:none; @include opacity(0); display:none;}
+
+	&._transition {._g, ._f, ._f:before, ._f:after {transition:all 0.25s; -webkit-transition:all 0.25s;}}
+	
+	._g {pointer-events: all;}
+	._f {pointer-events: none;}
+	
+	._g, ._f, :after,:before{-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box}
+	
+	
+	&.noHighlight {
+		._g, ._f 
+		{
+			pointer-events: none !important;
+			@include opacity(0); 
+			:after, :before {@include opacity(0);}
+		}
+	}
+	
+	._g, ._f, ._fc {
+		position:absolute;
+		display: block;
+		z-index: 9999;
+	}
+	
+	._b, ._t, ._r {width:  100%;}
+	._b           {height: 100%;}
+}
+
+
+//.wizardNavigationContainer {
+//    *zoom: 1;
+//	&:before,
+//	&:after {content: " "; display: table;} //TODO: Why did we do that?
+//	&:after {clear: both;}
+//}
+//.wizardContent   {clear: right;}
+
+.wizardCountDown {width: 0;}
+
+
+.floatingStepContainer
+{
+	z-index:10000;
+
+	&.wizardPos_top:before    {top:    100%;}
+	&.wizardPos_bottom:before {bottom: 100%;}
+	&.wizardPos_right:before  {right:  100%;}
+	&.wizardPos_left:before   {left:   100%;}
+
+	&.wizardPos_top,
+	&.wizardPos_bottom,
+	&.wizardPos_right,
+	&.wizardPos_left
+	{
+		position:absolute;
+		.floatingStep {position:relative;}
+	}
+//	&.wizardPos_top    {.floatingStep {margin-top:-100%; margin-left: -50%;}}
+//	&.wizardPos_bottom {.floatingStep {margin-top:   0%; margin-left: -50%;}}
+//	&.wizardPos_right  {.floatingStep {margin-top: -50%; margin-left:   0%;}}
+//	&.wizardPos_left   {.floatingStep {margin-top: -50%; margin-left:-100%;}}
+
+	// sepcial directions will be positioned fixed
+	&.wizardPos_screenTopRight,
+	&.wizardPos_screenBottomRight,
+	&.wizardPos_screenBottomLeft,
+	&.wizardPos_screenTopLeft,
+	&.wizardPos_screenCenter {
+		position: fixed;
+		.floatingStep {position:relative;}
+	}
+
+	&.wizardPos_screenCenter      {
+		top:0; left:0; width:100%; height:100%; display:table; text-align:center; 
+		.floatingStepWrapper {display:table-cell; vertical-align:middle;} 
+		.floatingStep {text-align:initial;}
+	}
+	&.wizardPos_screenTopLeft     {top:   0%;left:  0%; .floatingStep {margin-left:  0%; margin-top:  0%;}}
+	&.wizardPos_screenBottomLeft  {bottom:0%;left:  0%; .floatingStep {margin-left:  0%; margin-top:  0%;}}
+	&.wizardPos_screenBottomRight {bottom:0%;right: 0%; .floatingStep {margin-left:  0%; margin-top:  0%;}}
+	&.wizardPos_screenTopRight    {top:   0%;right: 0%; .floatingStep {margin-left:  0%; margin-top:  0%;}}
+}
+
+.floatingStep {
+	&,* {pointer-events:all;}
+	display: none;
+	position: absolute;
+	overflow:hidden;
+	z-index:10001;
+
+	&:before {
+		border: solid transparent;
+		content: " ";
+		height: 0;
+		width: 0;
+		position: absolute;
+	}
+}
+
+.floatingStep.animated {
+	// animations are from :
+	// http://thecssguru.freeiz.com/animate/
+	$duration: 250ms;
+	$delay: 0s;
+	$supportAnimations: (
+		'flash', 'bounce', 'shake', 'tada',
+		'fadeIn', 'fadeInUp', 'fadeInDown',
+		'fadeInLeft', 'fadeInRight', 'fadeInUpBig', 'fadeInDownBig',
+		'fadeInLeftBig', 'fadeInRightBig', 'bounceIn', 'bounceInDown',
+		'bounceInUp', 'bounceInLeft', 'bounceInRight', 'rotateIn',
+		'rotateInDownLeft', 'rotateInDownRight', 'rotateInUpLeft',
+		'rotateInUpRight',
+		'fadeOut'
+	);
+
+	@each $animation in $supportAnimations {
+		&.#{$animation} {
+			@include animate(#{$animation}, $duration, $delay);
+		}
+	}
+}
+
+
+// include default themes
+@import "wizard/themes/default";
+@import "wizard/themes/wide";
