@@ -1,5 +1,5 @@
 @import "mixins";
-@import "wizard/animate";
+@import "animate";
 
 
 html {min-height:100%; min-width:100%; position:relative;}
@@ -139,5 +139,5 @@ body {min-height:100%; min-width:100%; position:absolute;}
 
 
 // include default themes
-@import "wizard/themes/default";
-@import "wizard/themes/wide";
+@import "themes/default";
+@import "themes/wide";
