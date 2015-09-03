@@ -78,10 +78,10 @@
 		{
 			offsetVertical   : 10,
 			offsetHorizontal : 10,
+			edgeOffset       : 50,
 		},
 		resizeResponseDuration : 200,
 		adjustmentsInterval    : 100,
-		edgeOffset             : 50,
 	};
 	
 	var _templates = {}; 
@@ -162,7 +162,7 @@
 			allowNext             : true,
 			allowPrev             : true,
 			showClose             : true,
-			showHeader            : false,
+			showHeader            : true,
 			//Labels
 			prevLabel             : '<i class="fa fa-fw fa-chevron-left"></i>',
 			nextLabel             : '<i class="fa fa-fw fa-chevron-right"></i>',
@@ -239,13 +239,13 @@
 			if ((that.settings[callback]) && (!window.WizardTools.isFunction(that.settings[callback])))
 			{
 				try {that.settings[callback] = eval("("+that.settings[callback]+")");}
-				catch(e) {console.log("Can not compile callback:"+callback); console.log(that.settings[callback])}
+				catch(e) {this.console.error("Can not compile callback:"+callback); this.console.error(that.settings[callback])}
 			}
 		});
 
 		//Sets the Wizard's steps
 		this.steps = steps;
-		var stepCallbacks = ["onStepChange","onStepStart","onStepStop","onStepPause","onStepResume","onStepFinish","autoNext"];
+		var stepCallbacks = ["onStepChange","onStepStart","onStepStop","onStepPause","onStepResume","onStepFinish","autoNext","allowNext", "allowPrev"];
 		stepCallbacks.forEach(function(callback,index)
 		{
 			that.steps.forEach(function(step,index)
@@ -253,7 +253,7 @@
 				if ((that.steps[index][callback]) && (!window.WizardTools.isFunction(that.steps[index][callback])))
 				{
 					try {that.steps[index][callback] = eval("("+that.steps[index][callback]+")");}
-					catch(e) {console.log("Can not compile callback:"+callback); console.log(that.steps[index][callback])}
+					catch(e) {this.console.error("Can not compile callback:"+callback); this.console.error(that.steps[index][callback])}
 				}
 			})
 		});
@@ -378,7 +378,7 @@
 			// make sure the element doesn't exist in the DOM tree
 			if (typeof this.$overlay.get(0) === 'undefined') 
 			{
-				var $overlay = $('<div class="wizardOverlay inactive noHighlight"><div class="_t _g"></div><div class="_b _g"></div><div class="_l _g"></div><div class="_r _g"></div><div class="_fc"><div class="_f"></div></div></div>');
+				var $overlay = $('<div class="wizardOverlay inactive noHighlight"><div class="_t _g"></div><div class="_b _g"></div><div class="_l _g"></div><div class="_r _g"></div><div class="_f"></div><div class="_fc"></div></div>');
 				$overlay.addClass(this.settings.skin).addClass(this.settings.template);
 				$(this.settings.overlayContainer).append($overlay);
 				this.$overlay = $overlay;
@@ -570,7 +570,7 @@
 						case 'right' : L = bounds.right  + _constants.step.edgeOffset - $w.width();  break;
 					}
 				}
-	
+
 				if (T<0) {T=0};
 				if (L<0) {L=0};
 				this.$root.animate({scrollTop:T,scrollLeft:L}, this.settings.scrollDuration);
@@ -611,9 +611,9 @@
 		_setStepBox: function($box, step) 
 		{
 			// toggle used settings
-			var showClose      = step.showClose      || this.settings.showClose;
-			var showNavigation = step.showNavigation || this.settings.showNavigation;
-			var showHeader     = step.showHeader     || this.settings.showHeader;
+			var showClose      = (step.showClose     !=undefined)?step.showClose      : this.settings.showClose;
+			var showNavigation = (step.showNavigation!=undefined)?step.showNavigation : this.settings.showNavigation;
+			var showHeader     = (step.showHeader    !=undefined)?step.showHeader     : this.settings.showHeader;
 	
 			// labels
 			var closeLabel  = step.closeLabel  || this.settings.closeLabel;
@@ -627,7 +627,7 @@
 			$box
 				.find('.wizardHeader')
 				.html(this._compileTemplate(headerTemplate))
-				.toggle(showHeader);
+				.toggle(((showHeader) && (headerTemplate) && (headerTemplate.length))?true:false);
 	
 			$box
 				.find('.wizardContent')
@@ -704,6 +704,7 @@
 			
 			if (position === 'auto')
 			{//Chooses position based on the most available place in the surrounding space
+				if (!$frameContainer) {return}
 				var $body = this.$body;
 				var spaceTop    = $frameContainer.position().top;
 				var spaceLeft   = $frameContainer.position().left;
@@ -1352,6 +1353,7 @@
 			this._rescrollAllowed = true; //Allows rescroll
 
 			var duration   = step.duration     || this.settings.autoCountdownDuration;
+			if (duration<100) {duration = duration * 1000} //duration under 100 is assumed to be seconds, and not milliseconds
 
 			this._hideCountDowns();
 			if (duration && (duration >= 0)) 
@@ -1431,7 +1433,7 @@
 		isPrevAllowed: function(step) 
 		{
 			step = step || this.getCurrentStep();
-			var prevAllowed = step.allowPrev || this.settings.allowPrev;
+			var prevAllowed = (step.allowPrev != undefined)?step.allowPrev:this.settings.allowPrev;
 			if (typeof prevAllowed === 'function') {prevAllowed = prevAllowed.call(step);}
 			return prevAllowed;
 		},
@@ -1446,7 +1448,7 @@
 		isNextAllowed: function(step) 
 		{
 			step = step || this.getCurrentStep();
-			var nextAllowed = step.allowNext || this.settings.allowNext;
+			var nextAllowed = (step.allowNext != undefined)?step.allowNext:this.settings.allowNext;
 			if (typeof nextAllowed === 'function') {nextAllowed = nextAllowed.call(step);}
 			return nextAllowed;
 		},
@@ -1623,7 +1625,7 @@
 				
 				//Adjusts the frame container and frame
 				struct.frameContainer.css ({top:y,    left:x  });
-				struct.frame.css          ({height:h, width:w });
+				struct.frame.css          ({height:h, width:w, marginTop:y, marginLeft:x });
 				
 				if (this._rescrollAllowed) {this._scrollIntoView();}
 				

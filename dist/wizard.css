@@ -547,6 +547,6 @@ body { min-height: 100%; min-width: 100%; position: absolute; }
 .wizardStep.wizardWide.floatingStep.wizardPos_right:before { border-right-color: #333; }
 .wizardStep.wizardWide.floatingStep.wizardPos_left:before { border-left-color: #333; }
 .wizardStep.wizardWide.floatingStep .wizardHeader { position: relative; font-size: 16px; font-weight: bold; border-bottom: 1px dashed #888; margin: 0; padding: 3px; }
-.wizardStep.wizardWide.floatingStep .wizardContent { min-width: 150px; max-width: 300px; padding-bottom: 7px; }
+.wizardStep.wizardWide.floatingStep .wizardContent { min-width: 250px; max-width: 350px; padding-bottom: 7px; }
 .wizardStep.wizardWide .wizardCountDown { height: 3px; }
 .wizardStep.wizardWide .wizardCountDown:before { border-top: 1px solid #ccc; width: 200%; height: 1px; content: ' '; position: absolute; margin-left: -50%; margin-top: -1px; }
