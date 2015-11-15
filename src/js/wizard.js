@@ -1380,12 +1380,18 @@
 			var stepURL = step.url || step._urlPrevious;
 			if (stepURL) 
 			{
+				//First, redirect if needed
 				var CurrentLocation_Absolute = window.location.toString();
 				if (stepURL !== CurrentLocation_Absolute) {location=stepURL;}
 				
-				//Check if stepURL is an absolute redirect
-				if (stepURL.replace(/#.*$/,'') !== CurrentLocation_Absolute.replace(/#.*$/,'')) 
-					{return} //No need to present the step upon a page absolute redirtect (as the new page will be loaded shortly)
+				var stepURL_Absolute = document.createElement('a'); 
+				stepURL_Absolute.href = stepURL;
+				stepURL_Absolute = stepURL_Absolute.href;
+				var stepURL_Anchorless = stepURL_Absolute.replace(/#.*$/,'');
+				var CurrentLocation_Anchorless = CurrentLocation_Absolute.replace(/#.*$/,'');
+
+				if (stepURL_Anchorless !== CurrentLocation_Anchorless)
+					{return} //absolute redirect - No need to present the step upon a page absolute redirtect (as the new page will be loaded shortly)
 			}
 			else
 				{step._urlPrevious=window.location.toString();} //Storing the step's current URL in case it doesn't have one yet.
