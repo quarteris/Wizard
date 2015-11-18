@@ -30,7 +30,6 @@
 //3. if object exists, but invisible (for now)?... and then appears?
 //TODO: Add support for templates, which sets both HTML blocks as well as default skin; Also allow users to add their own templates using Wizard.registerTemplate
 //MEDIUM:
-//TODO: Rename onStepChange to onWizardStepChange
 //TODO: When a floatingBox happens to reach outside the visible content, nudge it with margin-left/top; See that we can do it in a way that doesn't hurt the possible little arrows which we can add; Test to see what happens when a top/right object is highlighted with position:auto
 //TODO: Add ability to start wizard from the "last point" upon full page load
 //      Use a localstorage to define a WizardLastStatus which gets erased when a wizard starts and gets updated if settings.reviveWizard is set;
@@ -193,8 +192,8 @@
 		
 		
 		//Initiates template blocks in settings structure
-		this.settings.floatingStepHTML = this.settings.floatingStepHTML || (_templates[this.template]?_templates[this.template].floatingStepHTML:null) || _templates['wizardWide'].floatingStepHTML;
-		this.settings.anchoredStepHTML = this.settings.anchoredStepHTML || (_templates[this.template]?_templates[this.template].anchoredStepHTML:null) || _templates['wizardWide'].anchoredStepHTML;
+		this.settings.floatingStepHTML = this.settings.floatingStepHTML || (_templates[this.settings.template]?_templates[this.settings.template].floatingStepHTML:null) || _templates['wizardWide'].floatingStepHTML;
+		this.settings.anchoredStepHTML = this.settings.anchoredStepHTML || (_templates[this.settings.template]?_templates[this.settings.template].anchoredStepHTML:null) || _templates['wizardWide'].anchoredStepHTML;
 
 		//Copy initial Wizard settings
 		this.step        = this.settings.step;
@@ -211,6 +210,8 @@
 		this._rescrollAllowed = false; //Re-scrolls an item into view on resize or content change
 		
 		this._deactivationTimer = null; //Enabled delayed activation of inactive class (to allow effects)
+		
+		this._temporaryClasses = '';
 		
 		//Commonly used DOM objects
 		this.$root                  = $('body, html');
@@ -317,7 +318,7 @@
 		{
 			this.$floatingStepContainer = $('.floatingStepContainer');
 			this.$floatingStepBox       = $('.floatingStep');
-			if (typeof $('.floatingStep').get(0) === 'undefined') 
+			if (typeof this.$floatingStepBox.get(0) === 'undefined') 
 			{//ONLY create the floatingStep object if it doesn't exist yet
 				var that = this;
 				var floatingStepHTML       = this.settings.floatingStepHTML;
@@ -690,37 +691,43 @@
 				{position = 'auto'};
 
 			if (position === 'anchor') {return};
+
 			var $box             = this.$floatingStepBox;
 			var stepWidth        = $box && $box.outerWidth();
 			var stepHeight       = $box && $box.outerHeight();
 
+			var frameWidth, frameHeight,
+			    shiftH, shiftV,
+			    pH, pV;
 			var $frameContainer  = this._highlightAdjustment.frame;
-			var frameWidth       = $frameContainer && this._highlightAdjustment.currentSize.width;
-			var frameHeight      = $frameContainer && this._highlightAdjustment.currentSize.height;
 			
-			
-			var shiftH;
-			var shiftV;
-			
-			if (position === 'auto')
-			{//Chooses position based on the most available place in the surrounding space
-				if (!$frameContainer) {return}
-				var $body = this.$body;
-				var spaceTop    = $frameContainer.position().top;
-				var spaceLeft   = $frameContainer.position().left;
-				var spaceBottom = $body.height() - $frameContainer.position().top  - frameHeight;
-				var spaceRight  = $body.width()  - $frameContainer.position().left - frameWidth;
-				var allSides = spaceTop + spaceLeft + spaceBottom + spaceRight 
+			if (((position === "auto") && (this._highlightAdjustment.object === '#')) || (!$frameContainer)) 
+				{position = "screenCenter"} //If no highlight frame to attach to, put the Step box at the screen center
+			else
+			{//Calculate position related variables
+				frameWidth       = $frameContainer && this._highlightAdjustment.currentSize.width;
+				frameHeight      = $frameContainer && this._highlightAdjustment.currentSize.height;
 				
-				if      (spaceTop *4  >= allSides) {position = 'top'}
-				else if (spaceLeft*4  >= allSides) {position = 'left'}
-				else if (spaceRight*4 >= allSides) {position = 'right'}
-				else                               {position = 'bottom'}
+				if (position === 'auto')
+				{//Chooses position based on the most available place in the surrounding space
+					if (!$frameContainer) {return}
+					var $body = this.$body;
+					var spaceTop    = $frameContainer.position().top;
+					var spaceLeft   = $frameContainer.position().left;
+					var spaceBottom = $body.height() - $frameContainer.position().top  - frameHeight;
+					var spaceRight  = $body.width()  - $frameContainer.position().left - frameWidth;
+					var allSides = spaceTop + spaceLeft + spaceBottom + spaceRight 
+					
+					if      (spaceTop *4  >= allSides) {position = 'top'}
+					else if (spaceLeft*4  >= allSides) {position = 'left'}
+					else if (spaceRight*4 >= allSides) {position = 'right'}
+					else                               {position = 'bottom'}
+				}
+				step._positionActual = position; //_positionActual may differ if position was invalid or was set to 'auto'
+				
+				pH = _constants.step.offsetHorizontal;
+				pV = _constants.step.offsetVertical;
 			}
-			step._positionActual = position; //_positionActual may differ if position was invalid or was set to 'auto'
-			
-			var pH = _constants.step.offsetHorizontal;
-			var pV = _constants.step.offsetVertical;
 			
 			switch (position) 
 			{
@@ -893,7 +900,17 @@
 			var position = step.position || this.settings.defaultPosition;
 			
 			// 'Screen' positions are fixed and therefore do no need an element
-			if (this._isPositionFixed(position))
+			if (
+					(this._isPositionFixed(position)) ||
+					(//auto position with no element is also valid, as it opts for screenCenter
+						(position === 'auto') && 
+						(
+								step.element           === null     ||
+								step.element           === undefined||
+								step.element.length    === 0
+						)
+					)
+				)
 				{return true;} 
 			//ELSE
 
@@ -907,6 +924,7 @@
 				typeof step.content === 'undefined' ||
 				typeof step.element === 'undefined' ||
 				step.element           === null     ||
+				step.element           === undefined||
 				step.element.length    === 0
 			) {return false;}
 			
@@ -1149,15 +1167,48 @@
 		},
 
 		/**
+		 * Moves to a specific step
+		 *
+		 * @memberOf Wizard
+		 * @type     {Function}
+		 * @param    {Object/Number} step
+		 * @public
+		 */
+		move: function(step) 
+		{
+			if (typeof step !== 'number') {return;} //passed parameter must be a step number
+
+			var NewStep = this.steps[step];
+			if (!NewStep) {return;} //If step non-existent, abort
+			//ELSE
+			
+			var currentStep = this.getCurrentStep();
+			this._concludeStep(currentStep);
+
+			//Callback - Executing 'finish' of the current step
+			var stepFinish = currentStep.onStepFinish || this.settings.onStepFinish;
+			var onStepFinish_Callback = stepFinish(this.step, currentStep);
+	
+			//Upon finish, move to the next step (or finalize Wizard, if on last step)
+			var that = this;
+			$.when(onStepFinish_Callback).then(function() {
+				that.step = step; that.run();
+			});
+
+			return this; //Allow operation chaining
+		},
+
+		/**
 		 * Moves to the next step
 		 *
 		 * @memberOf Wizard
 		 * @type     {Function}
+		 * @param    {Boolean} force
 		 * @public
 		 */
-		next: function() 
+		next: function(force) 
 		{
-			if (!this.isNextAllowed()) {return this;}
+			if ((!force) && (!this.isNextAllowed())) {return this;}
 
 			this.direction = 'next';
 	
@@ -1184,11 +1235,12 @@
 		 *
 		 * @memberOf Wizard
 		 * @type     {Function}
+		 * @param    {Boolean} force
 		 * @public
 		 */
-		prev: function() 
+		prev: function(force) 
 		{
-			if (!this.isPrevAllowed()) {return this;}
+			if ((!force) && (!this.isPrevAllowed())) {return this;}
 
 			this.direction = 'prev';
 			var step = this.getCurrentStep();
@@ -1216,8 +1268,12 @@
 		 * @type     {Function}
 		 * @param    {Object} step
 		 */
-		showStep: function(step) 
+		_showStep: function(step) 
 		{
+			this.$overlay.removeClass(this._temporaryClasses);
+			this.$overlay.addClass(step.classes);
+			this._temporaryClasses = step.classes;
+			
 			//Stops animation, if present
 			if ((this.settings.enableAnimation) && (step.position !== 'anchor')) {this._removeAnimation();}
 	
@@ -1266,7 +1322,7 @@
 
 			//Erase extected interval - if exists
 			if (this._highlightExpected && this._highlightExpected.handler)
-				{clearInterval(this._highlightExpected.handler); }
+				{clearInterval(this._highlightExpected.handler);}
 			this._highlightExpected={};
 
 			
@@ -1320,13 +1376,25 @@
 		run: function() 
 		{
 			var step = this.getCurrentStep();
-			
+
 			var stepURL = step.url || step._urlPrevious;
 			if (stepURL) 
-				{window.location=stepURL;}
+			{
+				//First, redirect if needed
+				var CurrentLocation_Absolute = window.location.toString();
+				if (stepURL !== CurrentLocation_Absolute) {location=stepURL;}
+				
+				var stepURL_Absolute = document.createElement('a'); 
+				stepURL_Absolute.href = stepURL;
+				stepURL_Absolute = stepURL_Absolute.href;
+				var stepURL_Anchorless = stepURL_Absolute.replace(/#.*$/,'');
+				var CurrentLocation_Anchorless = CurrentLocation_Absolute.replace(/#.*$/,'');
+
+				if (stepURL_Anchorless !== CurrentLocation_Anchorless)
+					{return} //absolute redirect - No need to present the step upon a page absolute redirtect (as the new page will be loaded shortly)
+			}
 			else
 				{step._urlPrevious=window.location.toString();} //Storing the step's current URL in case it doesn't have one yet.
-
 
 			//First, quickly check if we even need this step
 			var autoNextMet = false;
@@ -1348,7 +1416,7 @@
 					{return this[this.direction]();}
 			}
 	
-			this.showStep(step); //Shows the current step
+			this._showStep(step); //Shows the current step
 			
 			this._rescrollAllowed = true; //Allows rescroll
 
@@ -1490,49 +1558,62 @@
 				if (this._highlightExpected.handler)
 					{clearInterval(this._highlightExpected.handler);}
 
-				var $object = $(object); //Attempts to locate the object
-				if ($object.get(0) === undefined) 
-				{//No object is found yet. Initiating "wait for object" process..
-					
-					
-					//Initiates structure
-					var that = this;
-					this._highlightExpected = {
-						object : object, //Uses the object's selector (string) 
-						handler: setInterval(
-							function()
-							{
-								var $object = $(that._highlightExpected.object); //Attempt to locate the object 
-								if (!($object.get(0) === undefined)) 
-								{//If found...
-									clearInterval(that._highlightExpected.handler); //Clears the interval
-									that._highlightExpected = {}; //Clears the highlightExpected structure
-									that.highlight($object); //Sets the highlight
-									that._scrollIntoView(); //Scrolls the higlighted object into view
-
-									that._highlightAdjustment.object = $object; //Sets the object for the highlight adjustment structure
-									if (!that._highlightAdjustment.adjustHandler) //Sets the highlight adjustment interval
-									{//Initiates adjustment interval
-										that._highlightAdjustment.adjustHandler = setInterval(
-											function(that){return function(){that._adjustHighlight()}}(that),
-											_constants.adjustmentsInterval
-										);
+				if ((object === '') || (object === ' ') || (object === '#')) 
+				{//Special indicators of non-object, which causes the step-box to show with a dark backdrop but without the need for adjustment interval
+					if (this._highlightAdjustment && this._highlightAdjustment.adjustHandler) 
+					{//Clears previously (possibly) set highlight adjustment interval
+						clearInterval(that._highlightAdjustment.adjustHandler);
+						this._highlightAdjustment.adjustHandler = null;
+					}
+					this._highlightAdjustment.object = '#';
+					this._adjustHighlight();
+				}
+				else
+				{
+					var $object = $(object); //Attempts to locate the object
+					if ($object.get(0) === undefined) 
+					{//No object is found yet. Initiating "wait for object" process..
+						//Initiates structure
+						var that = this;
+						this._highlightExpected = {
+							object : object, //Uses the object's selector (string) 
+							handler: setInterval(
+								function()
+								{
+									var $object = $(that._highlightExpected.object); //Attempt to locate the object 
+									if (!($object.get(0) === undefined))
+									{//If found...
+										clearInterval(that._highlightExpected.handler); //Clears the interval
+										that._highlightExpected = {}; //Clears the highlightExpected structure
+										that.highlight($object); //Sets the highlight
+										that._scrollIntoView(); //Scrolls the higlighted object into view
+	
+										that._highlightAdjustment.object = $object; //Sets the object for the highlight adjustment structure
+										if (!that._highlightAdjustment.adjustHandler) //Sets the highlight adjustment interval
+										{//Initiates adjustment interval
+											that._highlightAdjustment.adjustHandler = setInterval(
+												function(that){return function(){that._adjustHighlight()}}(that),
+												_constants.adjustmentsInterval
+											);
+										}
 									}
-								}
-							},
-							_constants.adjustmentsInterval
-						)
-					};
-					return this; //Aborts, as we don't need to hide the highlight below
+								},
+								_constants.adjustmentsInterval
+							)
+						};
+						
+						this._highlightAdjustment.object = '#';
+						this._adjustHighlight();
+					}
+					else 
+					{//Highlight object was found
+						this._highlightExpected = {};  //Clears the highlightExpected structure
+						object = $object; //Goes with the object by Object instead of selector
+					}
 				}
-				else 
-				{//Highlight object was found
-					this._highlightExpected = {};  //Clears the highlightExpected structure
-					object = $object; //Goes with the object by Object instead of selector
-				}
-			};
+			}
 			
-			if ((!(object === undefined)) && (!(object.get(0) === undefined)))
+			if ((typeof object === 'object') && (!(object.get(0) === undefined)))
 			{//Object exists AND is visible
 				triggerHighlight = true; //Trigger highlight below...
 
@@ -1584,8 +1665,8 @@
 		_adjustHighlight: function()
 		{
 			var struct  = this._highlightAdjustment;
-			var overlay = this.$overlay;
 			
+			var overlay = this.$overlay;
 			if (!struct.top) {//one-time wrapping items' init
 				struct.top            = overlay.find('._t');
 				struct.bottom         = overlay.find('._b');
@@ -1595,29 +1676,13 @@
 				struct.frame          = overlay.find('._f');
 			}
 			this._highlightAdjustment = struct;
-
-			if (!struct.object) {return}; //No highlight object to attach to
-			//ELSE
-		
-			var object = struct.object;
-		
-			var offset = object.offset();
-			var x = parseInt(offset.left)-4;
-			var y = parseInt(offset.top)-5;
-			var w = parseInt(object.outerWidth())+10;
-			var h = parseInt(object.outerHeight())+10;
-
-			//change in offset?
-			if (
-					(!struct.currentOffset)                     ||
-					(!struct.currentSize)                       ||
-					( struct.currentOffset.top  != offset.top ) ||
-					( struct.currentOffset.left != offset.left) ||
-					( struct.currentSize.width  != w          ) ||
-					( struct.currentSize.height != h          )
-				)
-			{
+			
+			if (struct.object === undefined)
+				{return;} //No highlight object to attach to
+			else if (struct.object === '#')
+			{//No-object - Move the highlight outside of the screen
 				//Adjust the surrounding Objects
+				var x='50%', y=0, w=0, h=0;
 				struct.top.css   ({                   height:y          });
 				struct.bottom.css({top:y+h                              });
 				struct.left.css  ({top:y,             height:h, width:x });
@@ -1625,25 +1690,60 @@
 				
 				//Adjusts the frame container and frame
 				struct.frameContainer.css ({top:y,    left:x  });
-				struct.frame.css          ({height:h, width:w, marginTop:y, marginLeft:x });
-				
-				if (this._rescrollAllowed) {this._scrollIntoView();}
-				
-				//Updates the structure
-				this._highlightAdjustment.currentOffset = offset;
-				this._highlightAdjustment.currentSize   = {width:w, height:h};
-				//frame currentSizeis needed for floatingStep position calculation
+				struct.frame.css          ({height:h, width:w, marginTop:y-100, marginLeft:x });
+
 				this._setFloatingStepBoxPosition(this.getCurrentStep());
 			}
+			else
+			{
+				var object = struct.object;
+	
+				var offset = object.offset();
+				var x = parseInt(offset.left)-4;
+				var y = parseInt(offset.top)-5;
+				var w = parseInt(object.outerWidth())+10;
+				var h = parseInt(object.outerHeight())+10;
+	
+				//change in offset?
+				if (
+						(!struct.currentOffset)                     ||
+						(!struct.currentSize)                       ||
+						( struct.currentOffset.top  != offset.top ) ||
+						( struct.currentOffset.left != offset.left) ||
+						( struct.currentSize.width  != w          ) ||
+						( struct.currentSize.height != h          )
+					)
+				{
+					//Adjust the surrounding Objects
+					struct.top.css   ({                   height:y          });
+					struct.bottom.css({top:y+h                              });
+					struct.left.css  ({top:y,             height:h, width:x });
+					struct.right.css ({top:y,   left:x+w, height:h,         });
+					
+					//Adjusts the frame container and frame
+					struct.frameContainer.css ({top:y,    left:x  });
+					struct.frame.css          ({height:h, width:w, marginTop:y, marginLeft:x });
+					
+					if (this._rescrollAllowed) {this._scrollIntoView();}
+					
+					//Updates the structure
+					this._highlightAdjustment.currentOffset = offset;
+					this._highlightAdjustment.currentSize   = {width:w, height:h};
+					//frame currentSize is needed for floatingStep position calculation
+					this._setFloatingStepBoxPosition(this.getCurrentStep());
+				}
+			}
 		},
+		
 	};
 
 	/**
 	 * Registers a template in the templates object
 	 *
 	 * @class Wizard
-	 * @param {Array.<Object>} steps
-	 * @param {Object}         options
+	 * @param {string}         template Name
+	 * @param {string}         floatingStep HTML
+	 * @param {string}         anchoredStep HTML
 	 */
 	Wizard.registerTemplate = function(templateName, floatingStepHTML, anchoredStepHTML)
 		{_templates[templateName] = {floatingStepHTML:floatingStepHTML, anchoredStepHTML:anchoredStepHTML}};
