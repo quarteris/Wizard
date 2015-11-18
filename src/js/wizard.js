@@ -171,8 +171,8 @@
 			//Offsets
 			offsetLeft            : 4,
 			offsetTop             : 5,
-			offsetRight           : 10,
-			offsetBottom          : 10,
+			offsetRight           : 6,
+			offsetBottom          : 5,
 
 			//Callbacks :: Wizard
 			onWizardStart         : $.noop,
@@ -1703,12 +1703,17 @@
 			{
 				var object = struct.object;
 				var step = this.getCurrentStep();
+				
+				var counted_x = (step.offsetLeft || this.settings.offsetLeft);
+				var counted_y = (step.offsetTop || this.settings.offsetTop);
+				var counted_w = (step.offsetRight || this.settings.offsetRight) + counted_x;
+				var counted_h = (step.offsetBottom || this.settings.offsetBottom) + counted_y;
 	
 				var offset = object.offset();
-				var x = parseInt(offset.left)-(step.offsetLeft || this.settings.offsetLeft);
-				var y = parseInt(offset.top)-(step.offsetTop || this.settings.offsetTop);
-				var w = parseInt(object.outerWidth())+(step.offsetRight || this.settings.offsetRight);
-				var h = parseInt(object.outerHeight())+(step.offsetBottom || this.settings.offsetBottom);
+				var x = parseInt(offset.left)-counted_x;
+				var y = parseInt(offset.top)-counted_y;
+				var w = parseInt(object.outerWidth())+counted_w;
+				var h = parseInt(object.outerHeight())+counted_h;
 	
 				//change in offset?
 				if (
